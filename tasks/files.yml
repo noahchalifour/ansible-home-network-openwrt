@@ -1,0 +1,52 @@
+- name: Make sure {{ local_backups_dir }} exists
+  file:
+    path: "{{ local_backups_dir }}"
+    state: directory
+
+- name: Get S3 {{ item.path }} object metadata
+  shell: |
+    curl -v --head \
+      --user "{{ aws_access_key_id }}":"{{ aws_secret_access_key }}" \
+      --aws-sigv4 "aws:amz:{{ aws_region }}:s3" \
+      https://{{ aws_s3_bucket }}.s3.{{ aws_region }}.amazonaws.com{{ item.path }}
+  changed_when: false
+  register: s3_head
+
+- name: Check if S3 object was found
+  set_fact:
+    s3_object_found: "{{ '404 Not Found' not in s3_head.stdout }}"
+
+- name: Check if local version of {{ item.path }} file exists
+  stat:
+    path: "{{ [local_backups_dir, item.path[1:]] | path_join }}"
+  register: local_file
+  when: s3_object_found
+
+- name: Get file modification times
+  set_fact:
+    s3_last_modified: "{{ (s3_head.stdout_lines | select('search', '^Last-Modified:') | first | replace('Last-Modified: ', '') | to_datetime('%a, %d %b %Y %H:%M:%S %Z')).strftime('%s') }}"
+    local_last_modified: "{{ ('%Y-%m-%d %H:%M:%S' | strftime(local_file.stat.mtime) | to_datetime | to_utc).strftime('%s') }}"
+  when: s3_object_found and local_file.stat.exists
+
+- name: Calculate modification time difference
+  set_fact:
+    s3_to_local_diff: "{{ (s3_last_modified | int) - ((local_last_modified | int) + (60)) }}"
+  when: s3_object_found and local_file.stat.exists
+
+- name: Fetch newer version of {{ item.path }} from S3
+  shell: |
+    curl -v -L \
+      --user "{{ aws_access_key_id }}":"{{ aws_secret_access_key }}" \
+      --aws-sigv4 "aws:amz:{{ aws_region }}:s3" \
+      -o {{ local_backups_dir }}{{ item.path }} \
+      https://{{ aws_s3_bucket }}.s3.{{ aws_region }}.amazonaws.com{{ item.path }}
+  when: s3_object_found and ((not local_file.stat.exists) or (s3_to_local_diff | int > 0))
+  register: s3_fetch
+
+- name: (tar.gz) Extract to {{ item.dest }}
+  shell: |
+    tar -xzvf \
+      {{ local_backups_dir }}{{ item.path }} \
+      -C {{ item.dest }}
+  when: s3_fetch.changed and (item.path | regex_search('\.tar\.gz$')) != ""
+  notify: "{{ item.notify }}"

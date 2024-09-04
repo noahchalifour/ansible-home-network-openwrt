@@ -1,0 +1,21 @@
+- name: Install packages needed for smart home
+  opkg:
+    name: avahi-daemon,avahi-utils,luci-mod-rpc
+    state: present
+  # TODO: Fix
+  # For some reason this errors even if it already exists. So just
+  # ignore for now
+  ignore_errors: true
+
+- name: Ensure enable-reflector is set to yes
+  ansible.builtin.lineinfile:
+    path: /etc/avahi/avahi-daemon.conf
+    regexp: '^enable-reflector='
+    line: enable-reflector=yes
+  notify:
+    - Restart avahi-daemon
+
+- name: Make sure avahi-daemon is enabled (mDNS repeating)
+  service:
+    name: avahi-daemon
+    enabled: yes

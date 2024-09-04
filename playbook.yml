@@ -1,0 +1,9 @@
+- hosts: openwrt
+  roles:
+    - gekmihesg.openwrt
+  handlers:
+    - import_tasks: handlers/configs.yml
+    - import_tasks: handlers/smart_home.yml
+    - import_tasks: handlers/wireguard.yml
+  tasks:
+    - include_tasks: tasks/main.yml

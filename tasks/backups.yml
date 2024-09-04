@@ -1,0 +1,27 @@
+- name: Install packages needed for backups
+  opkg:
+    name: openssl-util
+    state: present
+  # TODO: Fix
+  # For some reason this errors even if it already exists. So just
+  # ignore for now
+  ignore_errors: true
+
+- name: Make sure configs backup cronjob exists
+  lineinfile:
+    path: "/etc/crontabs/root"
+    create: yes
+    owner: root
+    group: root
+    mode: '0644'
+    search_string: "-d /etc/config"
+    line: >-
+      0 0 * * * /etc/scripts/backup_to_s3.sh
+      -d /etc/config
+      -b {{ aws_s3_bucket }}
+      -a {{ aws_access_key_id }}
+      -s {{ aws_secret_access_key }}
+      -n openwrt-configs.tar.gz
+      -r {{ aws_region }} > /tmp/log/configs_s3_backup.log 2>&1
+  notify:
+    - Restart cron

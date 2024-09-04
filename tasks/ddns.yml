@@ -1,0 +1,7 @@
+- name: Install DDNS required packages
+  opkg:
+    name: ddns-scripts,luci-app-ddns,ddns-scripts-cloudflare,wget,ca-certificates,curl,ca-bundle
+  # TODO: Fix
+  # For some reason this errors even if it already exists. So just
+  # ignore for now
+  ignore_errors: true

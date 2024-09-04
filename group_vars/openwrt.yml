@@ -1,0 +1,22 @@
+# Ansible configuration
+ansible_user: <SSH_USER> 
+ansible_scp_extra_args: "-O"
+ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+
+# AWS configuration
+aws_access_key_id: "<AWS_ACCESS_KEY_ID>"
+aws_secret_access_key: "<AWS_SECRET_ACCESS_KEY>"
+aws_region: "<AWS_REGION>"
+aws_s3_bucket: "<AWS_S3_BUCKET>"
+
+# Backup files to fetch from remote source
+local_backups_dir: /etc/backups
+aws_s3_objects: 
+  - path: "/openwrt-configs.tar.gz"
+    dest: /etc/config
+    notify:
+      - Restart network
+      - Restart DHCP
+      - Restart wireless
+      - Restart firewall
+    

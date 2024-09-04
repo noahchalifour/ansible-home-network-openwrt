@@ -1,0 +1,18 @@
+- name: Make sure Python is installed/configured
+  include_tasks: ./python.yml
+
+- name: Setup DDNS
+  include_tasks: ./ddns.yml
+
+- name: Fetch files from S3
+  include_tasks: ./files.yml
+  with_items: "{{ aws_s3_objects }}"
+
+- name: Configure things for smart home
+  include_tasks: ./smart_home.yml
+
+- name: Set up scripts
+  include_tasks: ./scripts.yml
+
+- name: Configure backups
+  include_tasks: ./backups.yml

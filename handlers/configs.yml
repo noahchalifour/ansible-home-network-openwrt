@@ -1,0 +1,22 @@
+- name: Restart network
+  service:
+    name: network
+    state: restarted
+
+- name: Restart DHCP
+  service:
+    name: dnsmasq
+    state: restarted
+
+- name: Restart wireless
+  command: wifi
+
+- name: Restart firewall
+  service:
+    name: firewall
+    state: restarted
+
+- name: Restart cron
+  service:
+    name: cron
+    state: restarted
